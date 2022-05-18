@@ -17,6 +17,56 @@ for boundary
 import os
 import json
 
+class ItemLabelFile():
+    """
+    Build vocab from file.
+    Note, each line is a item in vocab, or each items[0] is in vocab
+    """
+    def __init__(self, files):
+        self.files = files
+        self.item2idx = {}
+        self.idx2item = []
+        self.item_size = 0
+        self.init_vocab()
+
+    def init_vocab(self):
+        for file in self.files:
+            with open(file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    items = line.split()
+                    item = items[0].strip()
+                    self.item2idx[item] = self.item_size
+                    self.idx2item.append(item)
+                    self.item_size += 1
+
+    def get_item_size(self):
+        return self.item_size
+
+    def convert_item_to_id(self, item):
+        label_ids = [0] * self.item_size
+        for tt in item:
+            if tt in self.item2idx:
+                label_ids[self.item2idx[tt]] = 1
+            else:
+                print("Label does not exist!!!!")
+                print(tt)
+                raise KeyError()
+        return label_ids
+
+    def convert_items_to_ids(self, items):
+        label_ids_multi = []
+        return [label_ids_multi.append(self.convert_item_to_id(item)) for item in items]
+
+    def convert_id_to_item(self, id):
+        return self.idx2item[id]
+
+    def convert_ids_to_items(self, ids):
+        return [self.convert_id_to_item(id) for id in ids]
+    
 class ItemVocabFile():
     """
     Build vocab from file.
