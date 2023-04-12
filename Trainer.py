@@ -55,9 +55,9 @@ except ImportError:
 
 ### to enable fp16 training, note pytorch >= 1.16.0 #########
 # from torch.cuda.amp import autocast
-from apex import amp
-_use_apex = True
-_use_native_amp = False
+# from apex import amp
+# _use_apex = True
+# _use_native_amp = False
     
 ###### for multi-gpu DistributedDataParallel training  #########
 os.environ['NCCL_DEBUG'] = 'INFO' # print more detailed NCCL log information
@@ -197,8 +197,8 @@ def train(model, args, train_dataset, dev_dataset, test_dataset, label_vocab, tb
     ## 2.optimizer and model
     optimizer, scheduler = get_optimizer(model, args, t_total)
 
-    if args.fp16 and _use_apex:
-        model, optimizer = amp.initialize(model, optimizer, opt_level=args.fp16_opt_level)
+    # if args.fp16 and _use_apex:
+    #     model, optimizer = amp.initialize(model, optimizer, opt_level=args.fp16_opt_level)
 
     # Check if saved optimizer or scheduler states exist
     if (model_path is not None
@@ -291,32 +291,32 @@ def train(model, args, train_dataset, dev_dataset, test_dataset, label_vocab, tb
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
 
-            if args.fp16 and _use_native_amp:
-                scaler.scale(loss).backward()
-            elif args.fp16 and _use_apex:
-                with amp.scale_loss(loss, optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+            # if args.fp16 and _use_native_amp:
+            #     scaler.scale(loss).backward()
+            # elif args.fp16 and _use_apex:
+            #     with amp.scale_loss(loss, optimizer) as scaled_loss:
+            #         scaled_loss.backward()
+            # else:
+            loss.backward()
 
             tr_loss += loss.item()
 
             ## update gradient
             if (step + 1) % args.gradient_accumulation_steps == 0 or \
                     ((step + 1) == len(epoch_iterator)):
-                if args.fp16 and _use_native_amp:
-                    scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
-                elif args.fp16 and _use_apex:
-                    torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
-                else:
-                    torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                # if args.fp16 and _use_native_amp:
+                #     scaler.unscale_(optimizer)
+                #     torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
+                # elif args.fp16 and _use_apex:
+                #     torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
+                # else:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
-                if args.fp16 and _use_native_amp:
-                    scaler.step(optimizer)
-                    scaler.update()
-                else:
-                    optimizer.step()
+                # if args.fp16 and _use_native_amp:
+                #     scaler.step(optimizer)
+                #     scaler.update()
+                # else:
+                optimizer.step()
 
                 scheduler.step()
                 model.zero_grad()
@@ -480,16 +480,24 @@ def evaluate(model, args, dataset, label_vocab, global_step, description="dev", 
 def main():
     args = get_argparse().parse_args()
     args.no_cuda = not torch.cuda.is_available()
-
+    print(args.no_cuda)
     ########### for multi-gpu training ##############
-    if torch.cuda.is_available() and args.local_rank != -1:
-        args.n_gpu = 1
-        torch.cuda.set_device(args.local_rank)
-        device = torch.device('cuda', args.local_rank)
-        torch.distributed.init_process_group(backend='nccl', init_method='env://')
-    else:
-        device = torch.device("cpu")
-        args.n_gpu = 0
+    # if args.local_rank == -1 or args.no_cuda:
+    device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+    args.n_gpu = torch.cuda.device_count()
+    print(args.n_gpu)
+    # print(torch.cuda.is_available())
+    # print(args.local_rank)
+    # if torch.cuda.is_available() and args.local_rank != -1:
+    #     print(torch.cuda.is_available())
+    #     print(args.local_rank)
+    #     args.n_gpu = torch.cuda.device_count()
+    #     torch.cuda.set_device(args.local_rank)
+    #     device = torch.device('cuda', args.local_rank)
+    #     torch.distributed.init_process_group(backend='nccl', init_method='env://')
+    # else:
+    #     device = torch.device("cpu")
+    #     args.n_gpu = 0
     #################################################
 
     args.device = device
