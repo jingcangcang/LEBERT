@@ -36,17 +36,10 @@ def load_pretrain_embed(embedding_path, max_scan_num=1000000, add_seg_vocab=Fals
             if len(items) == 2:
                 embed_dim = int(items[1])
                 continue
-            elif len(items) == 201:
+            elif len(items) == embed_dim + 1:
                 token = items[0]
                 embedd = np.empty([1, embed_dim])
                 embedd[:] = items[1:]
-                embed_dict[token] = embedd
-            elif len(items) > 201:
-                print("++++longer than 201+++++, line is: %s\n" % (line))
-                token = items[0:-200]
-                token = "".join(token)
-                embedd = np.empty([1, embed_dim])
-                embedd[:] = items[-200:]
                 embed_dict[token] = embedd
             else:
                 print("-------error word-------, line is: %s\n"%(line))
