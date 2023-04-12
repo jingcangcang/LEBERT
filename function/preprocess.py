@@ -6,6 +6,7 @@
 import time
 import os
 import json
+import re
 from tqdm import tqdm, trange
 from module.lexicon_tree import Trie
 
@@ -306,12 +307,17 @@ def build_lexicon_tree_from_vocabs(vocab_files, scan_nums=None):
             if need_num >= 0:
                 total_line_num = min(total_line_num, need_num)
 
-            line_iter = trange(total_line_num)
-            for idx in line_iter:
-                line = lines[idx]
-                line = line.strip()
+            # 过滤掉不用的词
+            for tmp_line in lines:
+                if len(vocabs) > total_line_num:
+                    break
+                line = tmp_line.strip()
+                if len(line) < 2:
+                    continue
                 items = line.split()
                 word = items[0].strip()
+                if len(word) < 2 or re.match("^[0-9]+$", word) or re.match("^[0-9a-z]+$", word):
+                    continue
                 vocabs.add(word)
     vocabs = list(vocabs)
     vocabs = sorted(vocabs)
